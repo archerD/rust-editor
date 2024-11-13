@@ -11,7 +11,7 @@
     pkgs = nixpkgs.legacyPackages.${system};
     naersk-lib = pkgs.callPackage naersk { };
   in {
-    packages.${system}.default = naersk-lib.buildPackage ./.; # source code is here.
+    packages.${system}.default = naersk-lib.buildPackage ./hecto; # source code is here.
 
     devShells.${system}.default = pkgs.mkShell {
       # CARGO_INSTALL_ROOT = "${toString ./.}/.cargo";
