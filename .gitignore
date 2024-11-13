@@ -1,0 +1,5 @@
+# rust compilation files
+hecto/target
+# direnv files
+.direnv
+
