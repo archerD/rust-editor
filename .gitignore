@@ -3,3 +3,6 @@ hecto/target
 # direnv files
 .direnv
 
+# nix build link
+result
+
