@@ -11,11 +11,13 @@ pub struct Size {
 
 pub struct Terminal {
     size: Size,
+    // this needs to stay around so the terminal stays in raw mode?
     _stdout: RawTerminal<std::io::Stdout>,
 }
 
 impl Terminal {
     pub fn default() -> Result<Self, std::io::Error> {
+        // TODO: consider updating this value periodically.
         let size = termion::terminal_size()?;
         Ok(Self {
             size: Size {
