@@ -40,7 +40,7 @@ pub struct Editor {
 impl Editor {
     pub fn default() -> Self {
         let args: Vec<String> = env::args().collect();
-        let mut initial_status = String::from("HELP: Ctrl-Q = quit");
+        let mut initial_status = String::from("HELP: Ctrl-Q = quit | Ctrl-S = save");
         let document = if args.len() > 1 {
             let file_name = &args[1];
             let doc = Document::open(file_name);
@@ -166,6 +166,25 @@ impl Editor {
         println!("{welcome_message}\r");
     }
 
+    fn save(&mut self) {
+        if self.document.file_name.is_none() {
+            let new_name = self.prompt("Enter file name: ").unwrap_or(None);
+
+            if new_name.is_none() {
+                self.status_message = StatusMessage::from("Save aborted!".to_string());
+                return;
+            }
+
+            self.document.file_name = new_name;
+        }
+
+        if self.document.save().is_ok() {
+            self.status_message = StatusMessage::from("File saved".to_string());
+        } else {
+            self.status_message = StatusMessage::from("Error writing to file!".to_string());
+        }
+    }
+
     fn process_keypress(&mut self) -> Result<(), std::io::Error> {
         // TODO: make this nonblocking...
         let pressed_key = Terminal::read_key()?;
@@ -187,6 +206,7 @@ impl Editor {
             | Key::PageUp | Key::PageDown | Key::Home | Key::End
                 => self.move_cursor(pressed_key),
             Key::Ctrl('q') => self.should_quit = true,
+            Key::Ctrl('s') => self.save(),
             _ => (),
         }
         self.scroll();
@@ -264,6 +284,41 @@ impl Editor {
         x = cmp::min(x, width);
 
         self.cursor_position = Position { x, y };
+    }
+
+    fn prompt(&mut self, prompt: &str) -> Result<Option<String>, std::io::Error> {
+        let mut result = String::new();
+        loop {
+            self.status_message = StatusMessage::from(format!("{prompt}{result}"));
+            self.refresh_screen()?;
+            match Terminal::read_key()? {
+                Key::Backspace => {
+                    if !result.is_empty() {
+                        result.truncate(result.len() - 1);
+                    }
+                },
+                Key::Esc => {
+                    result.truncate(0);
+                    break;
+                },
+                Key::Char('\n') => break,
+                Key::Char(c) => {
+                   if c == '\n' {
+                       break;
+                   }
+                   if !c.is_control() {
+                       result.push(c);
+                   }
+                },
+                _ => (),
+            }
+        }
+        self.status_message = StatusMessage::from(String::new());
+        if result.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(result))
+        }
     }
 }
 

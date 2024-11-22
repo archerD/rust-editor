@@ -50,6 +50,10 @@ impl Row {
         self.len == 0
     }
 
+    pub fn as_bytes(&self) -> &[u8] {
+        self.string.as_bytes()
+    }
+
     pub fn append(&mut self, new: &Self) {
         self.string = format!("{}{}", self.string, new.string);
         self.update_len();
