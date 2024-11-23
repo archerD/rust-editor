@@ -7,6 +7,7 @@ use termion::event::Key;
 const STATUS_BG_COLOR: color::Rgb = color::Rgb(239,239,239);
 const STATUS_FG_COLOR: color::Rgb = color::Rgb(63,63,63);
 const VERSION: &str = env!("CARGO_PKG_VERSION");
+const QUIT_TIMES: u8 = 1;
 
 #[derive(Default)]
 pub struct Position {
@@ -35,6 +36,7 @@ pub struct Editor {
     offset: Position,
     document: Document,
     status_message: StatusMessage,
+    quit_times: u8,
 }
 
 impl Editor {
@@ -61,6 +63,7 @@ impl Editor {
             offset: Position::default(),
             document,
             status_message: StatusMessage::from(initial_status),
+            quit_times: QUIT_TIMES,
         }
     }
 
@@ -125,12 +128,21 @@ impl Editor {
     fn draw_status_bar(&self) {
         let mut status;
         let width = self.terminal.size().width as usize;
+        let modified_indicator = if self.document.is_dirty() {
+            // TODO: should this be the case if there is no file name?
+            " (modified)"
+        } else {
+            ""
+        };
         let mut file_name = "[No Name]".to_string();
         if let Some(name) = &self.document.file_name {
             file_name = name.clone();
             file_name.truncate(20);
         }
-        status = format!("{} - {} lines", file_name, self.document.len());
+        status = format!("{} - {} lines{}",
+                         file_name,
+                         self.document.len(),
+                         modified_indicator);
         let line_indicator = format!("{}/{}", self.cursor_position.y.saturating_add(1), self.document.len());
         let len = status.len() + line_indicator.len();
         if width > len {
@@ -205,11 +217,23 @@ impl Editor {
             Key::Up | Key::Down | Key::Left | Key::Right
             | Key::PageUp | Key::PageDown | Key::Home | Key::End
                 => self.move_cursor(pressed_key),
-            Key::Ctrl('q') => self.should_quit = true,
+            Key::Ctrl('q') => {
+                // TODO: consider reworking this...
+                if self.quit_times > 0 && self.document.is_dirty() {
+                    self.status_message = StatusMessage::from(format!("WARNING! file has unsaved changes. Press Ctrl-Q {} more times to quit.", self.quit_times));
+                    self.quit_times -= 1;
+                    return Ok(());
+                }
+                self.should_quit = true
+            },
             Key::Ctrl('s') => self.save(),
             _ => (),
         }
         self.scroll();
+        if self.quit_times < QUIT_TIMES {
+            self.quit_times = QUIT_TIMES;
+            self.status_message = StatusMessage::from(String::new());
+        }
         Ok(())
     }
 
