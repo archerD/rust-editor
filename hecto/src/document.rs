@@ -58,9 +58,9 @@ impl Document {
         if at.y == self.len() {
             self.rows.push(Row::default());
             return;
-        } 
+        }
         let new_row = self.rows.get_mut(at.y).unwrap().split(at.x);
-        self.rows.insert(at.y+1, new_row);
+        self.rows.insert(at.y + 1, new_row);
     }
 
     pub fn insert(&mut self, at: &Position, c: char) {
@@ -75,13 +75,13 @@ impl Document {
         if at.y == self.len() {
             // new row
             let mut row = Row::default();
-            row.insert(0,c);
+            row.insert(0, c);
             self.rows.push(row);
         } else {
             // existing row
             let row = self.rows.get_mut(at.y).unwrap();
             row.insert(at.x, c);
-        } 
+        }
     }
 
     pub fn delete(&mut self, at: &Position) {
@@ -91,7 +91,7 @@ impl Document {
         }
         self.dirty = true;
         if at.x == self.rows.get_mut(at.y).unwrap().len() && at.y < len - 1 {
-            let next_row = self.rows.remove(at.y+1);
+            let next_row = self.rows.remove(at.y + 1);
             let row = self.rows.get_mut(at.y).unwrap();
             row.append(&next_row);
         } else {
@@ -100,4 +100,3 @@ impl Document {
         }
     }
 }
-

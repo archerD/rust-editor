@@ -1,11 +1,11 @@
 use crate::{Document, Row, Terminal};
-use std::{cmp, env};
 use std::time::{Duration, Instant};
+use std::{cmp, env};
 use termion::color;
 use termion::event::Key;
 
-const STATUS_BG_COLOR: color::Rgb = color::Rgb(239,239,239);
-const STATUS_FG_COLOR: color::Rgb = color::Rgb(63,63,63);
+const STATUS_BG_COLOR: color::Rgb = color::Rgb(239, 239, 239);
+const STATUS_FG_COLOR: color::Rgb = color::Rgb(63, 63, 63);
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const QUIT_TIMES: u8 = 1;
 
@@ -85,7 +85,7 @@ impl Editor {
 
     fn refresh_screen(&self) -> Result<(), std::io::Error> {
         Terminal::cursor_hide();
-        Terminal::cursor_position(&Position{ x:0, y:0 });
+        Terminal::cursor_position(&Position { x: 0, y: 0 });
         if self.should_quit {
             Terminal::clear_screen();
             println!("Goodbye!\r");
@@ -117,7 +117,7 @@ impl Editor {
 
             if let Some(row) = self.document.row(terminal_row as usize + self.offset.y) {
                 self.draw_row(row);
-            } else if self.document.is_empty() && terminal_row == height/3 {
+            } else if self.document.is_empty() && terminal_row == height / 3 {
                 self.draw_welcome_message();
             } else {
                 println!("~\r");
@@ -139,11 +139,17 @@ impl Editor {
             file_name = name.clone();
             file_name.truncate(20);
         }
-        status = format!("{} - {} lines{}",
-                         file_name,
-                         self.document.len(),
-                         modified_indicator);
-        let line_indicator = format!("{}/{}", self.cursor_position.y.saturating_add(1), self.document.len());
+        status = format!(
+            "{} - {} lines{}",
+            file_name,
+            self.document.len(),
+            modified_indicator
+        );
+        let line_indicator = format!(
+            "{}/{}",
+            self.cursor_position.y.saturating_add(1),
+            self.document.len()
+        );
         let len = status.len() + line_indicator.len();
         if width > len {
             status.push_str(&" ".repeat(width - len));
@@ -171,7 +177,7 @@ impl Editor {
         let mut welcome_message = format!("Hecto editor (DEF edition) -- version {VERSION}\r");
         let width = self.terminal.size().width as usize;
         let len = welcome_message.len();
-        let padding = width.saturating_sub(len)/2;
+        let padding = width.saturating_sub(len) / 2;
         let spaces = " ".repeat(padding.saturating_sub(1));
         welcome_message = format!("~{spaces}{welcome_message}");
         welcome_message.truncate(width);
@@ -204,28 +210,36 @@ impl Editor {
             Key::Char(c) => {
                 self.document.insert(&self.cursor_position, c);
                 self.move_cursor(Key::Right);
-            },
+            }
             Key::Delete => {
                 self.document.delete(&self.cursor_position);
-            },
+            }
             Key::Backspace => {
                 if self.cursor_position.x > 0 || self.cursor_position.y > 0 {
                     self.move_cursor(Key::Left);
                     self.document.delete(&self.cursor_position);
                 }
-            },
-            Key::Up | Key::Down | Key::Left | Key::Right
-            | Key::PageUp | Key::PageDown | Key::Home | Key::End
-                => self.move_cursor(pressed_key),
+            }
+            Key::Up
+            | Key::Down
+            | Key::Left
+            | Key::Right
+            | Key::PageUp
+            | Key::PageDown
+            | Key::Home
+            | Key::End => self.move_cursor(pressed_key),
             Key::Ctrl('q') => {
                 // TODO: consider reworking this...
                 if self.quit_times > 0 && self.document.is_dirty() {
-                    self.status_message = StatusMessage::from(format!("WARNING! file has unsaved changes. Press Ctrl-Q {} more times to quit.", self.quit_times));
+                    self.status_message = StatusMessage::from(format!(
+                        "WARNING! file has unsaved changes. Press Ctrl-Q {} more times to quit.",
+                        self.quit_times
+                    ));
                     self.quit_times -= 1;
                     return Ok(());
                 }
                 self.should_quit = true
-            },
+            }
             Key::Ctrl('s') => self.save(),
             _ => (),
         }
@@ -256,7 +270,7 @@ impl Editor {
         }
     }
 
-    fn move_cursor(&mut self, key:Key) {
+    fn move_cursor(&mut self, key: Key) {
         let terminal_height = self.terminal.size().height as usize;
         let Position { mut x, mut y } = self.cursor_position;
         let height = self.document.len();
@@ -271,7 +285,7 @@ impl Editor {
                 if y < height {
                     y = y.saturating_add(1);
                 }
-            },
+            }
             Key::Left => {
                 if x > 0 {
                     x -= 1;
@@ -283,7 +297,7 @@ impl Editor {
                         x = 0; // strictly speaking, unnecessary?
                     }
                 }
-            },
+            }
             Key::Right => {
                 if x < width {
                     x += 1;
@@ -291,7 +305,7 @@ impl Editor {
                     y += 1;
                     x = 0;
                 }
-            },
+            }
             Key::PageUp => y = y.saturating_sub(terminal_height),
             Key::PageDown => y = cmp::min(height, y.saturating_add(terminal_height)),
             Key::Home => x = 0,
@@ -320,20 +334,20 @@ impl Editor {
                     if !result.is_empty() {
                         result.truncate(result.len() - 1);
                     }
-                },
+                }
                 Key::Esc => {
                     result.truncate(0);
                     break;
-                },
+                }
                 Key::Char('\n') => break,
                 Key::Char(c) => {
-                   if c == '\n' {
-                       break;
-                   }
-                   if !c.is_control() {
-                       result.push(c);
-                   }
-                },
+                    if c == '\n' {
+                        break;
+                    }
+                    if !c.is_control() {
+                        result.push(c);
+                    }
+                }
                 _ => (),
             }
         }

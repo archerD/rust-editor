@@ -1,14 +1,15 @@
 #![warn(clippy::all, clippy::pedantic)]
-mod editor;
-mod terminal;
-mod row;
 mod document;
+mod editor;
+mod row;
+mod terminal;
 
 use editor::Editor;
-pub use editor::Position;
-pub use terminal::Terminal;
+
 pub use document::Document;
+pub use editor::Position;
 pub use row::Row;
+pub use terminal::Terminal;
 
 fn main() {
     let mut editor = Editor::default();

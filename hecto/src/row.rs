@@ -9,7 +9,7 @@ pub struct Row {
 
 impl From<&str> for Row {
     fn from(value: &str) -> Self {
-        let mut row = Self { 
+        let mut row = Self {
             string: String::from(value),
             len: 0,
         };
@@ -25,9 +25,10 @@ impl Row {
         // self.string.get(start..end).unwrap_or_default().to_string()
         let mut result = String::new();
         for grapheme in self.string[..]
-                .graphemes(true)
-                .skip(start)
-                .take(end-start) {
+            .graphemes(true)
+            .skip(start)
+            .take(end - start)
+        {
             if grapheme == "\t" {
                 // TODO: better handling of tabs (i.e., 4 spaces, or configurable spaces per tab)
                 result.push_str(" ");
@@ -85,11 +86,10 @@ impl Row {
             return;
         } else {
             let mut result: String = self.string[..].graphemes(true).take(at).collect();
-            let remainder: String = self.string[..].graphemes(true).skip(at+1).collect();
+            let remainder: String = self.string[..].graphemes(true).skip(at + 1).collect();
             result.push_str(&remainder);
             self.string = result;
         }
         self.update_len();
     }
 }
-
