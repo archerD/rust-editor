@@ -46,8 +46,8 @@ impl Editor {
         let document = if args.len() > 1 {
             let file_name = &args[1];
             let doc = Document::open(file_name);
-            if doc.is_ok() {
-                doc.unwrap()
+            if let Ok(doc) = doc {
+                doc
             } else {
                 initial_status = format!("ERR: Could not open file: {file_name}");
                 Document::default()
@@ -58,7 +58,7 @@ impl Editor {
 
         Self {
             should_quit: false,
-            terminal: Terminal::default().expect("Failed to initialize terminal"),
+            terminal: Terminal::default_or_err().expect("Failed to initialize terminal"),
             cursor_position: Position::default(),
             offset: Position::default(),
             document,
@@ -70,7 +70,7 @@ impl Editor {
     pub fn run(&mut self) {
         loop {
             if let Err(e) = self.refresh_screen() {
-                die(e);
+                die(&e);
             }
 
             if self.should_quit {
@@ -78,7 +78,7 @@ impl Editor {
             }
 
             if let Err(e) = self.process_keypress() {
-                die(e);
+                die(&e);
             }
         }
     }
@@ -105,7 +105,7 @@ impl Editor {
 
     fn draw_row(&self, row: &Row) {
         let start = self.offset.x;
-        let end = self.terminal.size().width as usize + start;
+        let end = start.saturating_add(self.terminal.size().width as usize);
         let row = row.render(start, end);
         println!("{row}\r");
     }
@@ -115,7 +115,10 @@ impl Editor {
         for terminal_row in 0..height {
             Terminal::clear_current_line();
 
-            if let Some(row) = self.document.row(terminal_row as usize + self.offset.y) {
+            if let Some(row) = self
+                .document
+                .row(self.offset.y.saturating_add(terminal_row as usize))
+            {
                 self.draw_row(row);
             } else if self.document.is_empty() && terminal_row == height / 3 {
                 self.draw_welcome_message();
@@ -151,10 +154,8 @@ impl Editor {
             self.document.len()
         );
         let len = status.len() + line_indicator.len();
-        if width > len {
-            status.push_str(&" ".repeat(width - len));
-        }
-        status = format!("{}{}", status, line_indicator);
+        status.push_str(&" ".repeat(width.saturating_sub(len)));
+        status = format!("{status}{line_indicator}");
         status.truncate(width);
         Terminal::set_bg_color(STATUS_BG_COLOR);
         Terminal::set_fg_color(STATUS_FG_COLOR);
@@ -166,7 +167,7 @@ impl Editor {
     fn draw_message_bar(&self) {
         Terminal::clear_current_line();
         let message = &self.status_message;
-        if Instant::now() - message.time < Duration::new(5, 0) {
+        if message.time.elapsed() < Duration::new(5, 0) {
             let mut text = message.text.clone();
             text.truncate(self.terminal.size().width as usize);
             print!("{text}"); // print, not println, since this is the last line on screen.
@@ -238,7 +239,7 @@ impl Editor {
                     self.quit_times -= 1;
                     return Ok(());
                 }
-                self.should_quit = true
+                self.should_quit = true;
             }
             Key::Ctrl('s') => self.save(),
             _ => (),
@@ -330,11 +331,7 @@ impl Editor {
             self.status_message = StatusMessage::from(format!("{prompt}{result}"));
             self.refresh_screen()?;
             match Terminal::read_key()? {
-                Key::Backspace => {
-                    if !result.is_empty() {
-                        result.truncate(result.len() - 1);
-                    }
-                }
+                Key::Backspace => result.truncate(result.len().saturating_sub(1)),
                 Key::Esc => {
                     result.truncate(0);
                     break;
@@ -360,7 +357,7 @@ impl Editor {
     }
 }
 
-fn die(e: std::io::Error) {
+fn die(e: &std::io::Error) {
     Terminal::clear_screen();
     panic!("{}", e);
 }

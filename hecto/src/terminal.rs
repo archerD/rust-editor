@@ -17,7 +17,9 @@ pub struct Terminal {
 }
 
 impl Terminal {
-    pub fn default() -> Result<Self, std::io::Error> {
+    /// # Errors
+    /// passes on errors related to attempting to move the terminal to raw mode.
+    pub fn default_or_err() -> Result<Self, std::io::Error> {
         // TODO: consider updating this value periodically.
         let size = termion::terminal_size()?;
         Ok(Self {
@@ -30,6 +32,7 @@ impl Terminal {
         })
     }
 
+    #[must_use]
     pub fn size(&self) -> &Size {
         &self.size
     }
@@ -66,10 +69,14 @@ impl Terminal {
         print!("{}", termion::cursor::Goto(x as u16, y as u16));
     }
 
+    /// # Errors
+    /// passes on errors from flushing out to stdout.
     pub fn flush() -> Result<(), std::io::Error> {
         io::stdout().flush()
     }
 
+    /// # Errors
+    /// passes on errors from reading input from stdin.
     pub fn read_key() -> Result<Key, std::io::Error> {
         loop {
             if let Some(key) = io::stdin().lock().keys().next() {

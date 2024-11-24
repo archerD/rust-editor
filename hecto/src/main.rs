@@ -1,4 +1,5 @@
 #![warn(clippy::all, clippy::pedantic)]
+#![allow(clippy::missing_panics_doc)]
 mod document;
 mod editor;
 mod row;

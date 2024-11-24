@@ -11,6 +11,8 @@ pub struct Document {
 }
 
 impl Document {
+    /// # Errors
+    /// pass on errors from reading the filesystems.
     pub fn open(filename: &str) -> Result<Self, std::io::Error> {
         let contents = fs::read_to_string(filename)?;
         let mut rows = Vec::new();
@@ -26,22 +28,28 @@ impl Document {
         })
     }
 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.rows.is_empty()
     }
 
+    #[must_use]
     pub fn len(&self) -> usize {
         self.rows.len()
     }
 
+    #[must_use]
     pub fn row(&self, index: usize) -> Option<&Row> {
         self.rows.get(index)
     }
 
+    #[must_use]
     pub fn is_dirty(&self) -> bool {
         self.dirty
     }
 
+    /// # Errors
+    /// pass on errors from creating a file handle and writing to it.
     pub fn save(&mut self) -> Result<(), Error> {
         if let Some(file_name) = &self.file_name {
             let mut file = fs::File::create(file_name)?;
@@ -55,6 +63,9 @@ impl Document {
     }
 
     fn insert_newline(&mut self, at: &Position) {
+        if at.y > self.len() {
+            return;
+        }
         if at.y == self.len() {
             self.rows.push(Row::default());
             return;
@@ -90,7 +101,7 @@ impl Document {
             return;
         }
         self.dirty = true;
-        if at.x == self.rows.get_mut(at.y).unwrap().len() && at.y < len - 1 {
+        if at.x == self.rows.get_mut(at.y).unwrap().len() && at.y + 1 < len {
             let next_row = self.rows.remove(at.y + 1);
             let row = self.rows.get_mut(at.y).unwrap();
             row.append(&next_row);
