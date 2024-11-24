@@ -44,6 +44,7 @@ impl Editor {
         let args: Vec<String> = env::args().collect();
         let mut initial_status = String::from("HELP: Ctrl-Q = quit | Ctrl-S = save");
         let document = if args.len() > 1 {
+            #[allow(clippy::indexing_slicing)]
             let file_name = &args[1];
             let doc = Document::open(file_name);
             if let Ok(doc) = doc {
@@ -56,6 +57,7 @@ impl Editor {
             Document::default()
         };
 
+        #[allow(clippy::expect_used)]
         Self {
             should_quit: false,
             terminal: Terminal::default_or_err().expect("Failed to initialize terminal"),
@@ -69,16 +71,16 @@ impl Editor {
 
     pub fn run(&mut self) {
         loop {
-            if let Err(e) = self.refresh_screen() {
-                die(&e);
+            if let Err(err) = self.refresh_screen() {
+                die(&err);
             }
 
             if self.should_quit {
                 break;
             }
 
-            if let Err(e) = self.process_keypress() {
-                die(&e);
+            if let Err(err) = self.process_keypress() {
+                die(&err);
             }
         }
     }
@@ -115,6 +117,7 @@ impl Editor {
         for terminal_row in 0..height {
             Terminal::clear_current_line();
 
+            #[allow(clippy::integer_division)]
             if let Some(row) = self
                 .document
                 .row(self.offset.y.saturating_add(terminal_row as usize))
@@ -137,8 +140,8 @@ impl Editor {
         } else {
             ""
         };
-        let mut file_name = "[No Name]".to_string();
-        if let Some(name) = &self.document.file_name {
+        let mut file_name = "[No Name]".to_owned();
+        if let Some(name) = self.document.file_name() {
             file_name = name.clone();
             file_name.truncate(20);
         }
@@ -178,6 +181,7 @@ impl Editor {
         let mut welcome_message = format!("Hecto editor (DEF edition) -- version {VERSION}\r");
         let width = self.terminal.size().width as usize;
         let len = welcome_message.len();
+        #[allow(clippy::integer_division)]
         let padding = width.saturating_sub(len) / 2;
         let spaces = " ".repeat(padding.saturating_sub(1));
         welcome_message = format!("~{spaces}{welcome_message}");
@@ -186,21 +190,21 @@ impl Editor {
     }
 
     fn save(&mut self) {
-        if self.document.file_name.is_none() {
+        if self.document.file_name().is_none() {
             let new_name = self.prompt("Enter file name: ").unwrap_or(None);
 
             if new_name.is_none() {
-                self.status_message = StatusMessage::from("Save aborted!".to_string());
+                self.status_message = StatusMessage::from("Save aborted!".to_owned());
                 return;
             }
 
-            self.document.file_name = new_name;
+            self.document.set_file_name(new_name);
         }
 
         if self.document.save().is_ok() {
-            self.status_message = StatusMessage::from("File saved".to_string());
+            self.status_message = StatusMessage::from("File saved".to_owned());
         } else {
-            self.status_message = StatusMessage::from("Error writing to file!".to_string());
+            self.status_message = StatusMessage::from("Error writing to file!".to_owned());
         }
     }
 
@@ -208,8 +212,8 @@ impl Editor {
         // TODO: make this nonblocking...
         let pressed_key = Terminal::read_key()?;
         match pressed_key {
-            Key::Char(c) => {
-                self.document.insert(&self.cursor_position, c);
+            Key::Char(ch) => {
+                self.document.insert(&self.cursor_position, ch);
                 self.move_cursor(Key::Right);
             }
             Key::Delete => {
@@ -315,6 +319,7 @@ impl Editor {
         }
 
         // correct x if past end of new current line
+        #[allow(clippy::shadow_unrelated)]
         let width = if let Some(row) = self.document.row(y) {
             row.len()
         } else {
@@ -337,12 +342,12 @@ impl Editor {
                     break;
                 }
                 Key::Char('\n') => break,
-                Key::Char(c) => {
-                    if c == '\n' {
+                Key::Char(ch) => {
+                    if ch == '\n' {
                         break;
                     }
-                    if !c.is_control() {
-                        result.push(c);
+                    if !ch.is_control() {
+                        result.push(ch);
                     }
                 }
                 _ => (),
@@ -357,7 +362,8 @@ impl Editor {
     }
 }
 
-fn die(e: &std::io::Error) {
+#[allow(clippy::panic)]
+fn die(error: &std::io::Error) {
     Terminal::clear_screen();
-    panic!("{}", e);
+    panic!("{}", error);
 }

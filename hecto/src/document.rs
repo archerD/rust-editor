@@ -6,7 +6,7 @@ use std::io::{Error, Write};
 #[derive(Default)]
 pub struct Document {
     rows: Vec<Row>,
-    pub file_name: Option<String>,
+    file_name: Option<String>,
     dirty: bool,
 }
 
@@ -23,7 +23,7 @@ impl Document {
 
         Ok(Self {
             rows,
-            file_name: Some(filename.to_string()),
+            file_name: Some(filename.to_owned()),
             dirty: false,
         })
     }
@@ -48,6 +48,15 @@ impl Document {
         self.dirty
     }
 
+    #[must_use]
+    pub fn file_name(&self) -> &Option<String> {
+        &self.file_name
+    }
+
+    pub fn set_file_name(&mut self, new_name: Option<String>) {
+        self.file_name = new_name;
+    }
+
     /// # Errors
     /// pass on errors from creating a file handle and writing to it.
     pub fn save(&mut self) -> Result<(), Error> {
@@ -70,28 +79,30 @@ impl Document {
             self.rows.push(Row::default());
             return;
         }
-        let new_row = self.rows.get_mut(at.y).unwrap().split(at.x);
+        #[allow(clippy::indexing_slicing)]
+        let new_row = self.rows[at.y].split(at.x);
         self.rows.insert(at.y + 1, new_row);
     }
 
-    pub fn insert(&mut self, at: &Position, c: char) {
+    pub fn insert(&mut self, at: &Position, ch: char) {
         if at.y > self.len() {
             return;
         }
         self.dirty = true;
-        if c == '\n' {
+        if ch == '\n' {
             self.insert_newline(at);
             return;
         }
         if at.y == self.len() {
             // new row
             let mut row = Row::default();
-            row.insert(0, c);
+            row.insert(0, ch);
             self.rows.push(row);
         } else {
             // existing row
-            let row = self.rows.get_mut(at.y).unwrap();
-            row.insert(at.x, c);
+            #[allow(clippy::indexing_slicing)]
+            let row = &mut self.rows[at.y];
+            row.insert(at.x, ch);
         }
     }
 
@@ -101,12 +112,13 @@ impl Document {
             return;
         }
         self.dirty = true;
-        if at.x == self.rows.get_mut(at.y).unwrap().len() && at.y + 1 < len {
+        #[allow(clippy::indexing_slicing)]
+        if at.x == self.rows[at.y].len() && at.y + 1 < len {
             let next_row = self.rows.remove(at.y + 1);
-            let row = self.rows.get_mut(at.y).unwrap();
+            let row = &mut self.rows[at.y];
             row.append(&next_row);
         } else {
-            let row = self.rows.get_mut(at.y).unwrap();
+            let row = &mut self.rows[at.y];
             row.delete(at.x);
         }
     }
