@@ -18,9 +18,19 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
         naersk-lib = pkgs.callPackage naersk { };
+        hecto-src = ./hecto;
       in
       {
-        packages.default = naersk-lib.buildPackage ./hecto; # source code is here.
+        packages = rec {
+            hecto = naersk-lib.buildPackage { src = hecto-src; };
+            # for use with nix build (not nix run).
+            test = naersk-lib.buildPackage {
+                src = hecto-src;
+                mode = "test";
+            };
+
+            default = hecto;
+        };
 
         devShells.default = pkgs.mkShell {
           # CARGO_INSTALL_ROOT = "${toString ./.}/.cargo";

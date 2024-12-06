@@ -59,7 +59,7 @@ impl Row {
     }
 
     pub fn insert(&mut self, at: usize, ch: char) {
-        if at > self.len() {
+        if at >= self.len() {
             self.string.push(ch);
             self.len += 1;
         } else {
@@ -114,5 +114,21 @@ impl Row {
         }
         self.string = result;
         self.len = length;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn insert_test() {
+        let mut my_row = Row::from("helloworld");
+        my_row.insert(5, ' ');
+        assert_eq!(my_row.render(0, 100), "hello world");
+
+        let mut empty_row = Row::from("");
+        empty_row.insert(0, 'D');
+        assert_eq!(empty_row.render(0, 100), "D");
     }
 }
