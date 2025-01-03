@@ -43,6 +43,16 @@ impl Document {
         self.rows.get(index)
     }
 
+    // TODO: can this search be incrementalized? so we can do incremental search?
+    pub fn find(&self, query: &str) -> Option<Position> {
+        for (y, row) in self.rows.iter().enumerate() {
+            if let Some(x) = row.find(query) {
+                return Some(Position { x, y });
+            }
+        }
+        None
+    }
+
     #[must_use]
     pub fn is_dirty(&self) -> bool {
         self.dirty
